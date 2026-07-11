@@ -17,6 +17,9 @@ test("renders markdown through an HTML template", () => {
   assert.match(html, /cloneNode\(true\)/);
   assert.match(html, /toc a\.active/);
   assert.match(html, /updateActiveHeading/);
+  assert.match(html, /session\.html&heading=/);
+  assert.match(html, /pi-share-base-url/);
+  assert.match(html, /pi-url-params/);
   assert.match(html, /Expand all/);
   assert.match(html, /Back to top/);
   assert.match(html, /Go to bottom/);

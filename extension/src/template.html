@@ -95,6 +95,10 @@
     document.querySelector("#app").replaceChildren(page);
     document.title = message.title;
 
+    const shareBaseUrl = document.querySelector('meta[name="pi-share-base-url"]')?.content;
+    const headingUrl = (id) => shareBaseUrl
+      ? `${shareBaseUrl}/session.html&heading=${encodeURIComponent(id)}`
+      : `#${id}`;
     const toc = document.querySelector("#toc");
     const headings = [...document.querySelectorAll("#content h1,#content h2,#content h3,#content h4")];
     const baseLevel = headings.length ? Math.min(...headings.map((heading) => Number(heading.tagName.slice(1)))) : 1;
@@ -107,7 +111,7 @@
       const level = Number(heading.tagName.slice(1));
       if (level === baseLevel || !groups.length) groups.push({ items: [] });
       const link = document.createElement("a");
-      link.href = `#${heading.id}`;
+      link.href = headingUrl(heading.id);
       link.dataset.level = String(level);
       link.textContent = heading.textContent;
       groups.at(-1).items.push({ heading, link });
@@ -174,6 +178,10 @@
       window.addEventListener("scroll", updateActiveHeading, { passive: true });
       window.addEventListener("resize", updateActiveHeading);
       updateActiveHeading();
+
+      const requestedHeading = new URLSearchParams(document.querySelector('meta[name="pi-url-params"]')?.content ?? "").get("heading");
+      const target = requestedHeading && document.getElementById(requestedHeading.replace(/^#/, ""));
+      if (target) requestAnimationFrame(() => target.scrollIntoView());
     }
   </script>
 </body>
