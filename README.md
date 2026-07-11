@@ -12,7 +12,6 @@ For local development:
 
 ```bash
 pnpm install
-pnpm build:css
 pi -e .
 ```
 
@@ -41,7 +40,7 @@ Optional environment variables:
 | `PI_MESSAGES_REPO` | `pi-messages` |
 | `PI_MESSAGES_BRANCH` | `main` |
 
-Pages are standalone: markdown is rendered with markdown-it and Tailwind's generated CSS is embedded in each file.
+Pages use markdown-it and load Tailwind in the browser from `https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4`. Internet access is required for styling.
 
 ## Development
 

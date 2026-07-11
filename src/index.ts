@@ -4,15 +4,14 @@ import {
   type ExtensionCommandContext,
   type SessionTreeNode,
 } from "@earendil-works/pi-coding-agent";
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { nanoid } from "nanoid";
 import { githubLogin, publishHtml } from "./github.js";
 import { renderPage, type SharedMessage } from "./render.js";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 function textOf(content: unknown): string {
   if (typeof content === "string") return content;
@@ -83,8 +82,7 @@ async function selectMessage(ctx: ExtensionCommandContext): Promise<SharedMessag
 async function pageFor(ctx: ExtensionCommandContext): Promise<string | undefined> {
   const message = await selectMessage(ctx);
   if (!message) return;
-  const css = await readFile(join(root, "assets/styles.css"), "utf8");
-  return renderPage(message, css);
+  return renderPage(message);
 }
 
 async function openBrowser(pi: ExtensionAPI, target: string): Promise<void> {
