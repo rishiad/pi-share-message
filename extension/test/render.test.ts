@@ -23,7 +23,7 @@ test("renders markdown through an HTML template", () => {
   assert.match(html, /Expand all/);
   assert.match(html, /Back to top/);
   assert.match(html, /Go to bottom/);
-  assert.match(html, /tailwindScript\.src = "https:\/\/cdn\.jsdelivr\.net\/npm\/@tailwindcss\/browser@4"/);
+  assert.match(html, /tailwindScript\.src =\s*"https:\/\/cdn\.jsdelivr\.net\/npm\/@tailwindcss\/browser@4"/);
   assert.doesNotMatch(html, /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/@tailwindcss\/browser@4"/);
   assert.doesNotMatch(html, /assistant<script>/);
 });
