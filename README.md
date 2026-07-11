@@ -36,6 +36,11 @@ https://html-preview.github.io/?url=<gist-raw-url>
 
 The Gist is secret, so it is not publicly listed, but anyone with the raw URL can view it. The preview page and Tailwind styling require internet access.
 
+## Layout
+
+- `extension/` contains the Pi extension and its tests.
+- `server/` is reserved for the future Go preview server.
+
 ## Development
 
 ```bash

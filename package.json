@@ -8,12 +8,12 @@
   ],
   "license": "MIT",
   "scripts": {
-    "test": "tsx --test test/*.test.ts",
+    "test": "tsx --test extension/test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "pi": {
     "extensions": [
-      "./src/index.ts"
+      "./extension/src/index.ts"
     ]
   },
   "dependencies": {
