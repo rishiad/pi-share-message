@@ -1,87 +1,38 @@
-import {
-  TreeSelectorComponent,
-  type ExtensionAPI,
-  type ExtensionCommandContext,
-  type SessionTreeNode,
-} from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { nanoid } from "nanoid";
 import { createSecretGist, sessionUrl } from "./gist.js";
-import { renderPage, type SharedMessage } from "./render.js";
+import { renderPage, type SharedTurn } from "./render.js";
+import { selectSummary } from "./summarize.js";
+import { latestTurnId, MultiTurnSelector, turnTree } from "./turns.js";
 
-function textOf(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return "";
-  return content.flatMap((part) => part && typeof part === "object" && "type" in part && part.type === "text" && "text" in part ? [String(part.text)] : []).join("\n\n");
-}
-
-function assistantText(node: SessionTreeNode): string | undefined {
-  const entry = node.entry;
-  if (entry.type !== "message" || entry.message.role !== "assistant") return;
-  const markdown = textOf(entry.message.content);
-  return markdown.trim() ? markdown : undefined;
-}
-
-function assistantTree(nodes: SessionTreeNode[], parentId: string | null = null): SessionTreeNode[] {
-  return nodes.flatMap((node) => {
-    const markdown = assistantText(node);
-    const kept = markdown !== undefined;
-    const children = assistantTree(node.children, kept ? node.entry.id : parentId);
-    if (!kept) return children;
-    return [{ ...node, entry: { ...node.entry, parentId }, children }];
-  });
-}
-
-function latestAssistantId(ctx: ExtensionCommandContext): string | null {
-  for (const entry of [...ctx.sessionManager.getBranch()].reverse()) {
-    if (entry.type === "message" && entry.message.role === "assistant" && textOf(entry.message.content).trim()) {
-      return entry.id;
-    }
-  }
-  return null;
-}
-
-async function selectMessage(ctx: ExtensionCommandContext): Promise<SharedMessage | undefined> {
+async function selectTurns(ctx: ExtensionCommandContext): Promise<SharedTurn[] | undefined> {
   if (ctx.mode !== "tui") {
     ctx.ui.notify("Message selection requires interactive mode", "error");
     return;
   }
 
-  const tree = assistantTree(ctx.sessionManager.getTree());
+  const tree = turnTree(ctx, ctx.sessionManager.getTree());
   if (!tree.length) {
     ctx.ui.notify("No assistant messages in this session", "warning");
     return;
   }
 
-  const selectedId = latestAssistantId(ctx);
-  const choice = await ctx.ui.custom<string | null>((tui, _theme, _keybindings, done) =>
-    new TreeSelectorComponent(
-      tree,
-      selectedId,
-      tui.terminal.rows,
-      (entryId) => done(entryId),
-      () => done(null),
-      undefined,
-      selectedId ?? undefined,
-      "all",
-    ),
+  const selected = await ctx.ui.custom<SharedTurn[] | null>((tui, theme, keybindings, done) =>
+    new MultiTurnSelector(tree, latestTurnId(ctx), tui.terminal.rows, theme, keybindings, done),
   );
-
-  if (!choice) return;
-  const selected = ctx.sessionManager.getEntry(choice);
-  if (selected?.type !== "message" || selected.message.role !== "assistant") return;
-  const markdown = textOf(selected.message.content);
-  if (!markdown.trim()) return;
-  return { role: selected.message.role, markdown, timestamp: selected.message.timestamp };
+  return selected?.length ? selected : undefined;
 }
 
 async function pageFor(ctx: ExtensionCommandContext): Promise<string | undefined> {
-  const message = await selectMessage(ctx);
-  if (!message) return;
-  return renderPage(message);
+  const turns = await selectTurns(ctx);
+  if (!turns) return;
+  const summary = await selectSummary(ctx, turns);
+  if (summary === null) return;
+  return renderPage({ title: "Pi selected messages", summary, turns });
 }
 
 async function openBrowser(pi: ExtensionAPI, target: string): Promise<void> {
@@ -93,7 +44,7 @@ async function openBrowser(pi: ExtensionAPI, target: string): Promise<void> {
 
 export default function (pi: ExtensionAPI) {
   pi.registerCommand("view-message", {
-    description: "Render a selected message and open it locally",
+    description: "Render selected messages and open them locally",
     handler: async (_args, ctx) => {
       try {
         const html = await pageFor(ctx);
@@ -107,7 +58,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("share-message", {
-    description: "Share a selected message through a secret GitHub Gist",
+    description: "Share selected messages through a secret GitHub Gist",
     handler: async (_args, ctx) => {
       try {
         const html = await pageFor(ctx);

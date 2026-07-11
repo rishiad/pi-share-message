@@ -1,7 +1,7 @@
 {
   "name": "pi-share-message",
   "version": "0.1.0",
-  "description": "Share individual pi messages as web pages",
+  "description": "Share selected pi messages as web pages",
   "type": "module",
   "keywords": [
     "pi-package"
@@ -17,6 +17,7 @@
     ]
   },
   "dependencies": {
+    "@earendil-works/pi-tui": "*",
     "markdown-it": "^14.1.0",
     "nanoid": "^5.1.5",
     "shiki": "^4.3.1"
