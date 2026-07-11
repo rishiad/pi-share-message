@@ -8,6 +8,7 @@ test("renders markdown and escapes metadata", () => {
   assert.match(html, /<code>code<\/code>/);
   assert.doesNotMatch(html, /assistant<script>/);
   assert.match(html, /assistant&lt;script&gt;/);
-  assert.match(html, /https:\/\/cdn\.jsdelivr\.net\/npm\/@tailwindcss\/browser@4/);
+  assert.match(html, /tailwindScript\.src = "https:\/\/cdn\.jsdelivr\.net\/npm\/@tailwindcss\/browser@4"/);
+  assert.doesNotMatch(html, /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/@tailwindcss\/browser@4"/);
   assert.doesNotMatch(html, /body\{\}/);
 });
