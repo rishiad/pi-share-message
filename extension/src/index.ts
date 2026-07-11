@@ -1,4 +1,4 @@
-import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import { TreeSelectorComponent, type ExtensionAPI, type ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -7,7 +7,7 @@ import { nanoid } from "nanoid";
 import { createSecretGist, sessionUrl } from "./gist.js";
 import { renderPage, type SharedTurn } from "./render.js";
 import { selectSummary } from "./summarize.js";
-import { latestTurnId, MultiTurnSelector, turnTree } from "./turns.js";
+import { assistantTree, latestAssistantId, turnForAssistantId } from "./turns.js";
 
 async function selectTurns(ctx: ExtensionCommandContext): Promise<SharedTurn[] | undefined> {
   if (ctx.mode !== "tui") {
@@ -15,16 +15,29 @@ async function selectTurns(ctx: ExtensionCommandContext): Promise<SharedTurn[] |
     return;
   }
 
-  const tree = turnTree(ctx, ctx.sessionManager.getTree());
+  const tree = assistantTree(ctx.sessionManager.getTree());
   if (!tree.length) {
     ctx.ui.notify("No assistant messages in this session", "warning");
     return;
   }
 
-  const selected = await ctx.ui.custom<SharedTurn[] | null>((tui, theme, keybindings, done) =>
-    new MultiTurnSelector(tree, latestTurnId(ctx), tui.terminal.rows, theme, keybindings, done),
+  const selectedId = latestAssistantId(ctx);
+  const choice = await ctx.ui.custom<string | null>((tui, _theme, _keybindings, done) =>
+    new TreeSelectorComponent(
+      tree,
+      selectedId,
+      tui.terminal.rows,
+      (entryId) => done(entryId),
+      () => done(null),
+      undefined,
+      selectedId ?? undefined,
+      "all",
+    ),
   );
-  return selected?.length ? selected : undefined;
+
+  if (!choice) return;
+  const turn = turnForAssistantId(ctx, choice);
+  return turn ? [turn] : undefined;
 }
 
 async function pageFor(ctx: ExtensionCommandContext): Promise<string | undefined> {
@@ -44,7 +57,7 @@ async function openBrowser(pi: ExtensionAPI, target: string): Promise<void> {
 
 export default function (pi: ExtensionAPI) {
   pi.registerCommand("view-message", {
-    description: "Render selected messages and open them locally",
+    description: "Render a selected message and open it locally",
     handler: async (_args, ctx) => {
       try {
         const html = await pageFor(ctx);
@@ -58,7 +71,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("share-message", {
-    description: "Share selected messages through a secret GitHub Gist",
+    description: "Share a selected message through a secret GitHub Gist",
     handler: async (_args, ctx) => {
       try {
         const html = await pageFor(ctx);
