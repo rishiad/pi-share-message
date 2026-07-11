@@ -1,19 +1,19 @@
 import { generateSummary, sessionEntryToContextMessages, type ExtensionCommandContext, type SessionEntry } from "@earendil-works/pi-coding-agent";
-import type { SharedTurn } from "./render.js";
+import type { SharedSelectedMessage } from "./render.js";
 
 const choices = ["No summary", "Summarize", "Summarize with custom prompt"] as const;
 type SummaryChoice = typeof choices[number];
 
-function uniqueEntries(turns: SharedTurn[]): SessionEntry[] {
+function uniqueEntries(messages: SharedSelectedMessage[]): SessionEntry[] {
   const seen = new Set<string>();
-  return turns.flatMap((turn) => turn.entries).filter((entry) => {
+  return messages.flatMap((message) => message.entries).filter((entry) => {
     if (seen.has(entry.id)) return false;
     seen.add(entry.id);
     return true;
   });
 }
 
-export async function selectSummary(ctx: ExtensionCommandContext, turns: SharedTurn[]): Promise<string | undefined | null> {
+export async function selectSummary(ctx: ExtensionCommandContext, messages: SharedSelectedMessage[]): Promise<string | undefined | null> {
   const choice = await ctx.ui.select("Summarize selection?", [...choices]);
   if (choice === undefined) return null;
   if ((choice as SummaryChoice) === "No summary") return undefined;
@@ -27,11 +27,11 @@ export async function selectSummary(ctx: ExtensionCommandContext, turns: SharedT
   if (!model) throw new Error("No model available for summarization");
   const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
   if (!auth.ok) throw new Error(auth.error);
-  const messages = uniqueEntries(turns).flatMap(sessionEntryToContextMessages);
+  const contextMessages = uniqueEntries(messages).flatMap(sessionEntryToContextMessages);
 
   ctx.ui.setStatus("pi-share-message", "Summarizing selection...");
   try {
-    return await generateSummary(messages, model, 16384, auth.apiKey, auth.headers, undefined, customInstructions?.trim() || undefined, undefined, undefined, undefined, auth.env);
+    return await generateSummary(contextMessages, model, 16384, auth.apiKey, auth.headers, undefined, customInstructions?.trim() || undefined, undefined, undefined, undefined, auth.env);
   } finally {
     ctx.ui.setStatus("pi-share-message", undefined);
   }

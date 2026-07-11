@@ -5,47 +5,91 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { nanoid } from "nanoid";
 import { createSecretGist, sessionUrl } from "./gist.js";
-import { renderPage, type SharedTurn } from "./render.js";
+import { renderPage, type SharedSelectedMessage } from "./render.js";
 import { selectSummary } from "./summarize.js";
-import { assistantTree, latestAssistantId, turnForAssistantId } from "./turns.js";
+import { latestMessageId, messageTree, selectedMessageForId } from "./turns.js";
 
-async function selectTurns(ctx: ExtensionCommandContext): Promise<SharedTurn[] | undefined> {
+function patchMultiSelect(selector: TreeSelectorComponent, keybindings: Parameters<Parameters<ExtensionCommandContext["ui"]["custom"]>[0]>[2], theme: Parameters<Parameters<ExtensionCommandContext["ui"]["custom"]>[0]>[1], done: (ids: string[] | null) => void): void {
+  const treeList = selector.getTreeList() as unknown as {
+    handleInput: (keyData: string) => void;
+    getSelectedNode: () => { entry: { id: string } } | undefined;
+    getStatusLabels?: () => string;
+    getEntryDisplayText?: (node: { entry: { id: string } }, isSelected: boolean) => string;
+  };
+  const selected = new Set<string>();
+  const originalHandleInput = treeList.handleInput.bind(treeList);
+  const originalStatus = treeList.getStatusLabels?.bind(treeList);
+  const originalDisplay = treeList.getEntryDisplayText?.bind(treeList);
+  const selectedId = () => treeList.getSelectedNode()?.entry.id;
+
+  treeList.handleInput = (keyData) => {
+    if (keyData === " ") {
+      const id = selectedId();
+      if (!id) return;
+      if (selected.has(id)) selected.delete(id);
+      else selected.add(id);
+      return;
+    }
+    if (keybindings.matches(keyData, "tui.select.confirm")) {
+      const ids = selected.size ? [...selected] : selectedId() ? [selectedId()!] : [];
+      done(ids.length ? ids : null);
+      return;
+    }
+    originalHandleInput(keyData);
+  };
+
+  if (originalStatus) {
+    treeList.getStatusLabels = () => `${originalStatus()} | ${selected.size} selected`;
+  }
+  if (originalDisplay) {
+    treeList.getEntryDisplayText = (node, isSelected) => {
+      const box = selected.has(node.entry.id) ? theme.fg("accent", "☑ ") : theme.fg("muted", "☐ ");
+      return box + originalDisplay(node, isSelected);
+    };
+  }
+}
+
+async function selectMessages(ctx: ExtensionCommandContext): Promise<SharedSelectedMessage[] | undefined> {
   if (ctx.mode !== "tui") {
     ctx.ui.notify("Message selection requires interactive mode", "error");
     return;
   }
 
-  const tree = assistantTree(ctx.sessionManager.getTree());
+  const tree = messageTree(ctx.sessionManager.getTree());
   if (!tree.length) {
-    ctx.ui.notify("No assistant messages in this session", "warning");
+    ctx.ui.notify("No user or assistant messages in this session", "warning");
     return;
   }
 
-  const selectedId = latestAssistantId(ctx);
-  const choice = await ctx.ui.custom<string | null>((tui, _theme, _keybindings, done) =>
-    new TreeSelectorComponent(
+  const selectedId = latestMessageId(ctx);
+  const ids = await ctx.ui.custom<string[] | null>((tui, theme, keybindings, done) => {
+    const selector = new TreeSelectorComponent(
       tree,
       selectedId,
       tui.terminal.rows,
-      (entryId) => done(entryId),
+      (entryId) => done([entryId]),
       () => done(null),
       undefined,
       selectedId ?? undefined,
       "all",
-    ),
-  );
+    );
+    patchMultiSelect(selector, keybindings, theme, done);
+    return selector;
+  });
 
-  if (!choice) return;
-  const turn = turnForAssistantId(ctx, choice);
-  return turn ? [turn] : undefined;
+  const messages = ids?.flatMap((id) => {
+    const message = selectedMessageForId(ctx, id);
+    return message ? [message] : [];
+  });
+  return messages?.length ? messages : undefined;
 }
 
 async function pageFor(ctx: ExtensionCommandContext): Promise<string | undefined> {
-  const turns = await selectTurns(ctx);
-  if (!turns) return;
-  const summary = await selectSummary(ctx, turns);
+  const messages = await selectMessages(ctx);
+  if (!messages) return;
+  const summary = await selectSummary(ctx, messages);
   if (summary === null) return;
-  return renderPage({ title: "Pi selected messages", summary, turns });
+  return renderPage({ title: "Pi selected messages", summary, messages });
 }
 
 async function openBrowser(pi: ExtensionAPI, target: string): Promise<void> {
@@ -57,7 +101,7 @@ async function openBrowser(pi: ExtensionAPI, target: string): Promise<void> {
 
 export default function (pi: ExtensionAPI) {
   pi.registerCommand("view-message", {
-    description: "Render a selected message and open it locally",
+    description: "Render selected messages and open them locally",
     handler: async (_args, ctx) => {
       try {
         const html = await pageFor(ctx);
@@ -71,7 +115,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("share-message", {
-    description: "Share a selected message through a secret GitHub Gist",
+    description: "Share selected messages through a secret GitHub Gist",
     handler: async (_args, ctx) => {
       try {
         const html = await pageFor(ctx);

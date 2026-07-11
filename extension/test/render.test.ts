@@ -29,24 +29,20 @@ test("renders markdown through an HTML template", async () => {
   assert.doesNotMatch(html, /assistant<script>/);
 });
 
-test("renders selected message pairs as a visual document", async () => {
+test("renders selected messages as a visual document", async () => {
   const html = await renderPage({
     summary: "## Recap\n\nSelected work.",
-    turns: [{
-      id: "abc123",
-      user: { role: "user", markdown: "Please explain it", timestamp: 1 },
-      assistant: { role: "assistant", markdown: "## Answer\n\nDone", timestamp: 2 },
-      entries: [],
-    }],
+    messages: [{ id: "abc123", role: "user", markdown: "Please explain it", timestamp: 1, entries: [] }, { id: "def456", role: "assistant", markdown: "## Answer\n\nDone", timestamp: 2, entries: [] }],
   });
   const encodedData = html.match(/<textarea id="message-data" hidden>([\s\S]*?)<\/textarea>/)?.[1];
   assert.ok(encodedData);
 
   const data = JSON.parse(encodedData);
-  assert.equal(data.role, "1 selected message pair");
+  assert.equal(data.role, "2 selected messages");
   assert.match(data.body, /summary-card/);
   assert.match(data.body, /id="summary"/);
-  assert.match(data.body, /id="turn-abc123"/);
+  assert.match(data.body, /id="message-abc123"/);
+  assert.match(data.body, /id="message-def456"/);
   assert.match(data.body, /turn-card-user/);
   assert.match(data.body, /turn-card-assistant/);
   assert.match(data.body, /<h2>Answer<\/h2>/);

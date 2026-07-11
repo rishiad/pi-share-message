@@ -1,6 +1,6 @@
 # pi-share-message
 
-A pi extension for selecting a message in the current session tree and rendering it as a standalone, HedgeDoc-style page.
+A pi extension for selecting any text message in the current session tree and rendering it as a webpage.
 
 ## Install
 
@@ -17,8 +17,10 @@ pi -e .
 
 ## Commands
 
-- `/view-message` — select a message, optionally summarize the selection, write a temporary HTML file, and open it in the default browser.
-- `/share-message` — select a message, optionally summarize the selection, create a secret GitHub Gist, and open it in the Pi session viewer.
+- `/view-message` — select messages, optionally summarize the selection, write a temporary HTML file, and open it in the default browser.
+- `/share-message` — select messages, optionally summarize the selection, create a secret GitHub Gist, and open it in the Pi session viewer.
+
+The selector uses Pi's native tree UI. User and assistant messages are shown; press `Space` to toggle multiple messages, then `Enter` to continue. If nothing is toggled, `Enter` selects the highlighted message.
 
 ## GitHub Gists
 

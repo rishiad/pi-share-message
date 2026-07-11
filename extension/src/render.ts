@@ -9,17 +9,16 @@ export interface SharedMessage {
   timestamp?: number;
 }
 
-export interface SharedTurn {
+export interface SharedSelectedMessage extends SharedMessage {
   id: string;
-  user?: SharedMessage;
-  assistant: SharedMessage;
+  role: "user" | "assistant";
   entries: SessionEntry[];
 }
 
 export interface SharedDocument {
   title?: string;
   summary?: string;
-  turns: SharedTurn[];
+  messages: SharedSelectedMessage[];
 }
 
 interface CodeBlock {
@@ -68,38 +67,36 @@ function escapeJsonForHtml(value: unknown): string {
 }
 
 function isDocument(value: SharedMessage | SharedDocument): value is SharedDocument {
-  return "turns" in value;
+  return "messages" in value;
 }
 
-function dateRange(turns: SharedTurn[]): string {
-  const timestamps = turns.flatMap((turn) => [turn.user?.timestamp, turn.assistant.timestamp]).filter((value): value is number => typeof value === "number");
+function dateRange(messages: SharedSelectedMessage[]): string {
+  const timestamps = messages.map((message) => message.timestamp).filter((value): value is number => typeof value === "number");
   if (!timestamps.length) return "";
   const first = new Date(Math.min(...timestamps)).toLocaleString();
   const last = new Date(Math.max(...timestamps)).toLocaleString();
   return first === last ? first : `${first} – ${last}`;
 }
 
-async function renderTurn(turn: SharedTurn, index: number): Promise<string> {
-  const user = turn.user ? await renderMarkdown(turn.user.markdown) : "";
-  const assistant = await renderMarkdown(turn.assistant.markdown);
-  const date = turn.assistant.timestamp ? new Date(turn.assistant.timestamp).toLocaleString() : "";
+async function renderSelectedMessage(message: SharedSelectedMessage, index: number): Promise<string> {
+  const body = await renderMarkdown(message.markdown);
+  const date = message.timestamp ? new Date(message.timestamp).toLocaleString() : "";
   return `<section class="turn">
-<h1 id="turn-${escapeHtml(turn.id)}">Turn ${index + 1}</h1>
+<h1 id="message-${escapeHtml(message.id)}">Message ${index + 1}</h1>
 ${date ? `<div class="turn-meta">${escapeHtml(date)}</div>` : ""}
-${turn.user ? `<section class="turn-card turn-card-user"><h2>User</h2><div>${user}</div></section>` : ""}
-<section class="turn-card turn-card-assistant"><h2>Assistant</h2><div>${assistant}</div></section>
+<section class="turn-card turn-card-${escapeHtml(message.role)}"><h2>${escapeHtml(message.role[0].toUpperCase() + message.role.slice(1))}</h2><div>${body}</div></section>
 </section>`;
 }
 
 async function renderDocument(document: SharedDocument): Promise<{ title: string; role: string; date: string; body: string }> {
   const summary = document.summary ? `<section class="summary-card"><h1 id="summary">Summary</h1>${await renderMarkdown(document.summary)}</section>` : "";
-  const turns = await Promise.all(document.turns.map(renderTurn));
-  const count = document.turns.length;
+  const messages = await Promise.all(document.messages.map(renderSelectedMessage));
+  const count = document.messages.length;
   return {
-    title: document.title ?? `${count} selected message pair${count === 1 ? "" : "s"}`,
-    role: `${count} selected message pair${count === 1 ? "" : "s"}`,
-    date: dateRange(document.turns),
-    body: `${summary}${turns.join("\n")}`,
+    title: document.title ?? `${count} selected message${count === 1 ? "" : "s"}`,
+    role: `${count} selected message${count === 1 ? "" : "s"}`,
+    date: dateRange(document.messages),
+    body: `${summary}${messages.join("\n")}`,
   };
 }
 
