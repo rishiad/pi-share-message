@@ -1,0 +1,31 @@
+{
+  "name": "pi-share-message",
+  "version": "0.1.0",
+  "description": "Share individual pi messages as HedgeDoc-style web pages",
+  "type": "module",
+  "keywords": ["pi-package"],
+  "license": "MIT",
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/styles.css -o ./assets/styles.css --minify",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "pi": {
+    "extensions": ["./src/index.ts"]
+  },
+  "dependencies": {
+    "markdown-it": "^14.1.0",
+    "nanoid": "^5.1.5"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@tailwindcss/cli": "^4.1.11",
+    "@types/markdown-it": "^14.1.2",
+    "tailwindcss": "^4.1.11",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

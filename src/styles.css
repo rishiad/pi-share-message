@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+@layer base {
+  * { @apply box-border; }
+  body { @apply m-0 bg-white text-[#2f2f2f] antialiased; }
+  a { @apply text-[#337ab7] no-underline hover:underline; }
+}
+
+@layer components {
+  .markdown-body { @apply text-[17px] leading-[1.65]; }
+  .markdown-body > :first-child { @apply mt-0; }
+  .markdown-body h1 { @apply mt-8 mb-4 border-b border-[#e5e5e5] pb-3 text-4xl font-bold leading-tight; }
+  .markdown-body h2 { @apply mt-7 mb-3 border-b border-[#e5e5e5] pb-2 text-3xl font-semibold leading-tight; }
+  .markdown-body h3 { @apply mt-6 mb-3 text-2xl font-semibold; }
+  .markdown-body h4 { @apply mt-5 mb-2 text-xl font-semibold; }
+  .markdown-body p { @apply my-4; }
+  .markdown-body ul { @apply my-4 list-disc pl-8; }
+  .markdown-body ol { @apply my-4 list-decimal pl-8; }
+  .markdown-body li { @apply my-1; }
+  .markdown-body blockquote { @apply my-4 border-l-4 border-[#ddd] pl-4 text-[#777]; }
+  .markdown-body code { @apply rounded bg-[#f3f3f3] px-1.5 py-0.5 font-mono text-[0.9em]; }
+  .markdown-body pre { @apply my-5 overflow-x-auto rounded bg-[#f5f5f5] p-5; }
+  .markdown-body pre code { @apply bg-transparent p-0 text-[14px] leading-[1.5]; }
+  .markdown-body table { @apply my-5 w-full border-collapse; }
+  .markdown-body th, .markdown-body td { @apply border border-[#ddd] px-3 py-2 text-left; }
+  .markdown-body th { @apply bg-[#f5f5f5] font-semibold; }
+  .markdown-body hr { @apply my-8 border-0 border-t border-[#ddd]; }
+  .markdown-body img { @apply max-w-full; }
+  .toc a { @apply block truncate py-1 text-sm text-[#666] hover:text-[#222] hover:no-underline; }
+  .toc a[data-level="2"] { @apply pl-3; }
+  .toc a[data-level="3"] { @apply pl-6; }
+  .toc a[data-level="4"] { @apply pl-9; }
+}
