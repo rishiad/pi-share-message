@@ -1,7 +1,7 @@
 {
   "name": "pi-share-message",
   "version": "0.1.0",
-  "description": "Share individual pi messages as HedgeDoc-style web pages",
+  "description": "Share individual pi messages as web pages",
   "type": "module",
   "keywords": [
     "pi-package"

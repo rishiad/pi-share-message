@@ -18,29 +18,23 @@ pi -e .
 ## Commands
 
 - `/view-message` — select a message, write a temporary HTML file, and open it in the default browser.
-- `/share-message` — select a message, upload `<nano-id>.html`, and open its GitHub Pages URL.
+- `/share-message` — select a message, create a secret GitHub Gist, and open it through `html-preview.github.io`.
 
-## GitHub Pages setup
+## GitHub Gists
 
-1. Create a public repository named `pi-messages`.
-2. In **Settings → Pages**, deploy from the `main` branch and `/ (root)` folder.
-3. Authenticate with `gh auth login`, or set `GITHUB_TOKEN` to a token with **Contents: write** access to that repository.
+Authenticate with `gh auth login`, or set `GITHUB_TOKEN` to a token with the **Gists: write** permission:
 
-The default published URL is:
-
-```text
-https://yourname.github.io/pi-messages/<nano-id>.html
+```bash
+gh auth refresh -s gist
 ```
 
-Optional environment variables:
+The shared URL has this form:
 
-| Variable | Default |
-| --- | --- |
-| `PI_MESSAGES_OWNER` | Login resolved from the token |
-| `PI_MESSAGES_REPO` | `pi-messages` |
-| `PI_MESSAGES_BRANCH` | `main` |
+```text
+https://html-preview.github.io/?url=<gist-raw-url>
+```
 
-Pages use markdown-it and load Tailwind in the browser from `https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4`. Internet access is required for styling.
+The Gist is secret, so it is not publicly listed, but anyone with the raw URL can view it. The preview page and Tailwind styling require internet access.
 
 ## Development
 

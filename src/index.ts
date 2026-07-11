@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { nanoid } from "nanoid";
-import { githubLogin, publishHtml } from "./github.js";
+import { createSecretGist } from "./gist.js";
 import { renderPage, type SharedMessage } from "./render.js";
 
 
@@ -108,16 +108,16 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("share-message", {
-    description: "Publish a selected message to GitHub Pages",
+    description: "Share a selected message through a secret GitHub Gist",
     handler: async (_args, ctx) => {
       try {
         const html = await pageFor(ctx);
         if (!html) return;
         const token = process.env.GITHUB_TOKEN || (await pi.exec("gh", ["auth", "token"])).stdout.trim();
         if (!token) throw new Error("Set GITHUB_TOKEN or authenticate with gh");
-        const owner = process.env.PI_MESSAGES_OWNER || await githubLogin(token);
-        const url = await publishHtml(nanoid(10), html, {
-          token, owner, repo: process.env.PI_MESSAGES_REPO, branch: process.env.PI_MESSAGES_BRANCH,
+        const url = await createSecretGist(html, {
+          token,
+          filename: `pi-message-${nanoid(10)}.html`,
         });
         await openBrowser(pi, url);
         ctx.ui.notify(`Published ${url}`, "info");
