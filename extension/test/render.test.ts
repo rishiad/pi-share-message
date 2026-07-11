@@ -17,6 +17,9 @@ test("renders markdown through an HTML template", () => {
   assert.match(html, /cloneNode\(true\)/);
   assert.match(html, /toc a\.active/);
   assert.match(html, /updateActiveHeading/);
+  assert.match(html, /Expand all/);
+  assert.match(html, /Back to top/);
+  assert.match(html, /Go to bottom/);
   assert.match(html, /tailwindScript\.src = "https:\/\/cdn\.jsdelivr\.net\/npm\/@tailwindcss\/browser@4"/);
   assert.doesNotMatch(html, /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/@tailwindcss\/browser@4"/);
   assert.doesNotMatch(html, /assistant<script>/);
