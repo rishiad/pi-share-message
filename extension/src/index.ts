@@ -9,9 +9,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { nanoid } from "nanoid";
-import { createSecretGist, previewUrl } from "./gist.js";
+import { createSecretGist, sessionUrl } from "./gist.js";
 import { renderPage, type SharedMessage } from "./render.js";
-
 
 function textOf(content: unknown): string {
   if (typeof content === "string") return content;
@@ -115,11 +114,8 @@ export default function (pi: ExtensionAPI) {
         if (!html) return;
         const token = process.env.GITHUB_TOKEN || (await pi.exec("gh", ["auth", "token"])).stdout.trim();
         if (!token) throw new Error("Set GITHUB_TOKEN or authenticate with gh");
-        const gist = await createSecretGist(html, {
-          token,
-          filename: `pi-message-${nanoid(10)}.html`,
-        });
-        const url = previewUrl(gist.id);
+        const gist = await createSecretGist(html, { token });
+        const url = sessionUrl(gist.id);
         await openBrowser(pi, url);
         ctx.ui.notify(`Published ${url}`, "info");
       } catch (error) { ctx.ui.notify((error as Error).message, "error"); }

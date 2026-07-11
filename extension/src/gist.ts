@@ -1,18 +1,16 @@
 export interface GistOptions {
   token: string;
-  filename?: string;
   description?: string;
 }
 
 export interface CreatedGist {
   id: string;
-  filename: string;
+  filename: "session.html";
 }
 
-const defaultPreviewBaseUrl = "http://localhost:8080";
+const filename = "session.html";
 
 export async function createSecretGist(html: string, options: GistOptions): Promise<CreatedGist> {
-  const filename = options.filename ?? "pi-message.html";
   const response = await fetch("https://api.github.com/gists", {
     method: "POST",
     headers: { ...headers(options.token), "content-type": "application/json" },
@@ -38,13 +36,8 @@ export async function createSecretGist(html: string, options: GistOptions): Prom
   return { id: gist.id, filename };
 }
 
-export function previewUrl(gistId: string, baseUrl = process.env.PI_SHARE_MESSAGE_PREVIEW_URL ?? defaultPreviewBaseUrl): string {
-  const url = new URL(baseUrl);
-  if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Preview URL must use HTTP or HTTPS");
-  url.pathname = `${url.pathname.replace(/\/+$/, "")}/${encodeURIComponent(gistId)}`;
-  url.search = "";
-  url.hash = "";
-  return url.toString();
+export function sessionUrl(gistId: string): string {
+  return `https://pi.dev/session/#${encodeURIComponent(gistId)}`;
 }
 
 function headers(token: string): Record<string, string> {
