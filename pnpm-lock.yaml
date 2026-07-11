@@ -16,6 +16,9 @@ devDependencies:
   '@earendil-works/pi-coding-agent':
     specifier: '*'
     version: 0.80.6(zod@4.4.3)
+  '@earendil-works/pi-tui':
+    specifier: 0.80.6
+    version: 0.80.6
   '@tailwindcss/cli':
     specifier: ^4.1.11
     version: 4.3.2

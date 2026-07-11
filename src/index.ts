@@ -1,4 +1,9 @@
-import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import {
+  DynamicBorder,
+  type ExtensionAPI,
+  type ExtensionCommandContext,
+} from "@earendil-works/pi-coding-agent";
+import { Container, SelectList, Text, type SelectItem } from "@earendil-works/pi-tui";
 import { readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -16,26 +21,77 @@ function textOf(content: unknown): string {
 }
 
 async function selectMessage(ctx: ExtensionCommandContext): Promise<SharedMessage | undefined> {
-  const entries = ctx.sessionManager.getEntries();
-  const byId = new Map(entries.map((entry) => [entry.id, entry]));
-  const messages = entries.filter((entry): entry is typeof entry & { type: "message" } => entry.type === "message")
-    .map((entry) => ({ entry, markdown: "content" in entry.message ? textOf(entry.message.content) : "" }))
-    .filter(({ markdown }) => markdown.trim());
-  if (!messages.length) {
-    ctx.ui.notify("No text messages in this session", "warning");
+  if (ctx.mode !== "tui") {
+    ctx.ui.notify("Message selection requires interactive mode", "error");
     return;
   }
-  const labels = messages.map(({ entry, markdown }, index) => {
+
+  const entries = ctx.sessionManager.getEntries();
+  const byId = new Map(entries.map((entry) => [entry.id, entry]));
+  const messages = entries.flatMap((entry) => {
+    if (entry.type !== "message" || entry.message.role !== "assistant") return [];
+    const markdown = textOf(entry.message.content);
+    return markdown.trim() ? [{ entry, markdown }] : [];
+  });
+
+  if (!messages.length) {
+    ctx.ui.notify("No assistant messages in this session", "warning");
+    return;
+  }
+
+  const items: SelectItem[] = messages.map(({ entry, markdown }, index) => {
     let depth = 0;
     let parent = entry.parentId ? byId.get(entry.parentId) : undefined;
-    while (parent) { depth++; parent = parent.parentId ? byId.get(parent.parentId) : undefined; }
-    const preview = markdown.replace(/\s+/g, " ").slice(0, 72);
-    return `${String(index + 1).padStart(2, "0")} ${"  ".repeat(Math.min(depth, 6))}${entry.message.role}: ${preview}`;
+    while (parent) {
+      depth++;
+      parent = parent.parentId ? byId.get(parent.parentId) : undefined;
+    }
+    return {
+      value: entry.id,
+      label: `${String(index + 1).padStart(2, "0")} ${markdown.replace(/\s+/g, " ").slice(0, 80)}`,
+      description: `${"  ".repeat(Math.min(depth, 6))}assistant · ${new Date(entry.message.timestamp).toLocaleString()}`,
+    };
   });
-  const choice = await ctx.ui.select("Select a message from the session tree", labels);
+
+  const choice = await ctx.ui.custom<string | null>((tui, theme, _keybindings, done) => {
+    const container = new Container();
+    const border = () => new DynamicBorder((text: string) => theme.fg("accent", text));
+    const selectList = new SelectList(items, Math.min(items.length, 12), {
+      selectedPrefix: (text: string) => theme.fg("accent", text),
+      selectedText: (text: string) => theme.fg("accent", text),
+      description: (text: string) => theme.fg("muted", text),
+      scrollInfo: (text: string) => theme.fg("dim", text),
+      noMatch: (text: string) => theme.fg("warning", text),
+    });
+
+    container.addChild(border());
+    container.addChild(new Text(theme.bold(theme.fg("accent", "Select an assistant message")), 1, 0));
+    container.addChild(new Text(theme.fg("muted", "Messages from the current pi session tree"), 1, 0));
+    container.addChild(selectList);
+    container.addChild(new Text(theme.fg("dim", "↑↓ navigate · Enter select · Esc cancel"), 1, 0));
+    container.addChild(border());
+
+    selectList.onSelect = (item) => done(item.value);
+    selectList.onCancel = () => done(null);
+
+    return {
+      render: (width: number) => container.render(width),
+      invalidate: () => container.invalidate(),
+      handleInput: (data: string) => {
+        selectList.handleInput(data);
+        tui.requestRender();
+      },
+    };
+  });
+
   if (!choice) return;
-  const selected = messages[labels.indexOf(choice)]!;
-  return { role: selected.entry.message.role, markdown: selected.markdown, timestamp: selected.entry.message.timestamp };
+  const selected = messages.find(({ entry }) => entry.id === choice);
+  if (!selected) return;
+  return {
+    role: selected.entry.message.role,
+    markdown: selected.markdown,
+    timestamp: selected.entry.message.timestamp,
+  };
 }
 
 async function pageFor(ctx: ExtensionCommandContext): Promise<string | undefined> {
