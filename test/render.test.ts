@@ -2,13 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderPage } from "../src/render.js";
 
-test("renders markdown and escapes metadata", () => {
+test("renders markdown through an HTML template", () => {
   const html = renderPage({ role: "assistant<script>", markdown: "# Hello\n\n`code`" });
-  assert.match(html, /<h1>Hello<\/h1>/);
-  assert.match(html, /<code>code<\/code>/);
-  assert.doesNotMatch(html, /assistant<script>/);
-  assert.match(html, /assistant&lt;script&gt;/);
+  const encodedData = html.match(/<textarea id="message-data" hidden>([\s\S]*?)<\/textarea>/)?.[1];
+  assert.ok(encodedData);
+
+  const data = JSON.parse(encodedData);
+  assert.match(data.body, /<h1>Hello<\/h1>/);
+  assert.match(data.body, /<code>code<\/code>/);
+  assert.equal(data.role, "assistant<script>");
+  assert.match(html, /<template id="page-template">/);
+  assert.match(html, /cloneNode\(true\)/);
   assert.match(html, /tailwindScript\.src = "https:\/\/cdn\.jsdelivr\.net\/npm\/@tailwindcss\/browser@4"/);
   assert.doesNotMatch(html, /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/@tailwindcss\/browser@4"/);
-  assert.doesNotMatch(html, /body\{\}/);
+  assert.doesNotMatch(html, /assistant<script>/);
 });

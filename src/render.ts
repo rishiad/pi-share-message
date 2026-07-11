@@ -10,19 +10,17 @@ export interface SharedMessage {
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
 const template = readFileSync(new URL("./template.html", import.meta.url), "utf8");
 
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
+function escapeJsonForHtml(value: unknown): string {
+  return JSON.stringify(value).replace(/[<>&]/g, (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`);
 }
 
 export function renderPage(message: SharedMessage): string {
-  const body = md.render(message.markdown);
-  const title = `${message.role[0]?.toUpperCase() ?? ""}${message.role.slice(1)} message`;
-  const values: Record<string, string> = {
-    title: escapeHtml(title),
-    role: escapeHtml(message.role),
-    date: message.timestamp ? escapeHtml(new Date(message.timestamp).toLocaleString()) : "",
-    body,
+  const data = {
+    title: `${message.role[0]?.toUpperCase() ?? ""}${message.role.slice(1)} message`,
+    role: message.role,
+    date: message.timestamp ? new Date(message.timestamp).toLocaleString() : "",
+    body: md.render(message.markdown),
   };
 
-  return template.replace(/\{\{(title|role|date|body)\}\}/g, (_match, key: string) => values[key]!);
+  return template.replace("{{data}}", escapeJsonForHtml(data));
 }
