@@ -2,16 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderPage } from "../src/render.js";
 
-test("renders markdown through an HTML template", () => {
-  const html = renderPage({ role: "assistant<script>", markdown: "# Hello\n\n`code`\n\n```typescript\nconst answer: number = 42;\n```" });
+test("renders markdown through an HTML template", async () => {
+  const html = await renderPage({ role: "assistant<script>", markdown: "# Hello\n\n`code`\n\n```typescript\nconst answer: number = 42;\n```" });
   const encodedData = html.match(/<textarea id="message-data" hidden>([\s\S]*?)<\/textarea>/)?.[1];
   assert.ok(encodedData);
 
   const data = JSON.parse(encodedData);
   assert.match(data.body, /<h1>Hello<\/h1>/);
   assert.match(data.body, /<code>code<\/code>/);
-  assert.match(data.body, /<code class="hljs language-typescript">/);
-  assert.match(data.body, /hljs-keyword/);
+  assert.match(data.body, /<pre class="shiki github-light"/);
+  assert.match(data.body, /style="color:#D73A49">const/);
+  assert.doesNotMatch(html, /hljs/);
   assert.equal(data.role, "assistant<script>");
   assert.match(html, /<template id="page-template">/);
   assert.match(html, /cloneNode\(true\)/);
