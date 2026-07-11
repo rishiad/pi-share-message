@@ -18,7 +18,7 @@ pi -e .
 ## Commands
 
 - `/view-message` — select a message, write a temporary HTML file, and open it in the default browser.
-- `/share-message` — select a message, create a secret GitHub Gist, and open it through `html-preview.github.io`.
+- `/share-message` — select a message, create a secret GitHub Gist, and open it in the browser.
 
 ## GitHub Gists
 
@@ -34,12 +34,11 @@ The shared URL has this form:
 https://html-preview.github.io/?url=<gist-raw-url>
 ```
 
-The Gist is secret, so it is not publicly listed, but anyone with the raw URL can view it. The preview page and Tailwind styling require internet access.
+The Gist is secret, so it is not publicly listed, but anyone with the Gist ID can view it. The complete HTML page still requires internet access for its CDN assets.
 
 ## Layout
 
 - `extension/` contains the Pi extension and its tests.
-- `server/` is reserved for the future Go preview server.
 
 ## Development
 

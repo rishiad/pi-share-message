@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { nanoid } from "nanoid";
-import { createSecretGist } from "./gist.js";
+import { createSecretGist, previewUrl } from "./gist.js";
 import { renderPage, type SharedMessage } from "./render.js";
 
 
@@ -115,10 +115,11 @@ export default function (pi: ExtensionAPI) {
         if (!html) return;
         const token = process.env.GITHUB_TOKEN || (await pi.exec("gh", ["auth", "token"])).stdout.trim();
         if (!token) throw new Error("Set GITHUB_TOKEN or authenticate with gh");
-        const url = await createSecretGist(html, {
+        const gist = await createSecretGist(html, {
           token,
           filename: `pi-message-${nanoid(10)}.html`,
         });
+        const url = previewUrl(gist.id);
         await openBrowser(pi, url);
         ctx.ui.notify(`Published ${url}`, "info");
       } catch (error) { ctx.ui.notify((error as Error).message, "error"); }

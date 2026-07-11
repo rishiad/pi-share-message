@@ -4,7 +4,14 @@ export interface GistOptions {
   description?: string;
 }
 
-export async function createSecretGist(html: string, options: GistOptions): Promise<string> {
+export interface CreatedGist {
+  id: string;
+  filename: string;
+}
+
+const defaultPreviewBaseUrl = "http://localhost:8080";
+
+export async function createSecretGist(html: string, options: GistOptions): Promise<CreatedGist> {
   const filename = options.filename ?? "pi-message.html";
   const response = await fetch("https://api.github.com/gists", {
     method: "POST",
@@ -22,21 +29,29 @@ export async function createSecretGist(html: string, options: GistOptions): Prom
   }
 
   const gist = (await response.json()) as {
-    files?: Record<string, { raw_url?: string }>;
+    id?: string;
+    files?: Record<string, unknown>;
   };
-  const rawUrl = gist.files?.[filename]?.raw_url;
-  if (!rawUrl) throw new Error("GitHub did not return a raw Gist URL");
+  if (!gist.id) throw new Error("GitHub did not return a Gist ID");
+  if (!gist.files?.[filename]) throw new Error("GitHub did not create the Gist file");
 
-  const previewUrl = new URL("https://html-preview.github.io/");
-  previewUrl.searchParams.set("url", rawUrl);
-  return previewUrl.toString();
+  return { id: gist.id, filename };
+}
+
+export function previewUrl(gistId: string, baseUrl = process.env.PI_SHARE_MESSAGE_PREVIEW_URL ?? defaultPreviewBaseUrl): string {
+  const url = new URL(baseUrl);
+  if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Preview URL must use HTTP or HTTPS");
+  url.pathname = `${url.pathname.replace(/\/+$/, "")}/${encodeURIComponent(gistId)}`;
+  url.search = "";
+  url.hash = "";
+  return url.toString();
 }
 
 function headers(token: string): Record<string, string> {
   return {
     accept: "application/vnd.github+json",
     authorization: `Bearer ${token}`,
-    "x-github-api-version": "2026-03-10",
+    "x-github-api-version": "2022-11-28",
     "user-agent": "pi-share-message",
   };
 }
