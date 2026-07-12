@@ -7,6 +7,7 @@ type OutputChoice = typeof choices[number];
 const rewriteInstructions = `Rewrite the selected conversation into one cohesive standalone document.
 
 Rules:
+- Start with one concise H1 heading that names the document.
 - Do not mention that this is a summary.
 - Do not preserve chat turn structure.
 - Organize the content as a readable document with headings.
@@ -44,12 +45,12 @@ async function rewriteSelection(ctx: ExtensionCommandContext, messages: SharedSe
 export async function buildSharedDocument(ctx: ExtensionCommandContext, messages: SharedSelectedMessage[]): Promise<SharedDocument | null> {
   const choice = await ctx.ui.select("Output format", [...choices]);
   if (choice === undefined) return null;
-  if ((choice as OutputChoice) === "Transcript") return { title: "Pi selected messages", messages };
+  if ((choice as OutputChoice) === "Transcript") return { title: "Pi Shared Messages", messages };
 
   const customInstructions = (choice as OutputChoice) === "Rewrite as document with custom instructions"
     ? await ctx.ui.editor("Custom rewrite instructions")
     : undefined;
   if ((choice as OutputChoice) === "Rewrite as document with custom instructions" && customInstructions === undefined) return null;
 
-  return { title: "Pi selected messages", document: await rewriteSelection(ctx, messages, customInstructions) };
+  return { document: await rewriteSelection(ctx, messages, customInstructions) };
 }

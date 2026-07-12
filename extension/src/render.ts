@@ -98,6 +98,10 @@ function isDocument(
   return "document" in value || "messages" in value;
 }
 
+function titleFromMarkdown(markdownText: string): string | undefined {
+  return markdownText.match(/^#\s+(.+)$/m)?.[1]?.trim();
+}
+
 async function renderSelectedMessage(message: SharedSelectedMessage): Promise<string> {
   const body = await renderMarkdown(message.markdown);
   const role = message.role[0].toUpperCase() + message.role.slice(1);
@@ -117,7 +121,7 @@ async function renderDocument(
 ): Promise<{ title: string; role: string; date: string; body: string }> {
   if (document.document !== undefined) {
     return {
-      title: document.title ?? "Pi shared document",
+      title: document.title ?? titleFromMarkdown(document.document) ?? "Pi Shared Messages",
       role: "document",
       date: "",
       body: await renderMarkdown(document.document),
@@ -127,7 +131,7 @@ async function renderDocument(
   const messages = document.messages ?? [];
   const count = messages.length;
   return {
-    title: document.title ?? `${count} selected message${count === 1 ? "" : "s"}`,
+    title: document.title ?? "Pi Shared Messages",
     role: `${count} selected message${count === 1 ? "" : "s"}`,
     date: "",
     body: await renderTranscript(messages),

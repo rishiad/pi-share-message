@@ -40,6 +40,7 @@ test("renders selected messages as a plain transcript", async () => {
   assert.ok(encodedData);
 
   const data = JSON.parse(encodedData);
+  assert.equal(data.title, "Pi Shared Messages");
   assert.equal(data.role, "2 selected messages");
   assert.equal(data.date, "");
   assert.match(data.body, /class="conversation"/);
@@ -59,6 +60,7 @@ test("renders rewritten output as one cohesive document", async () => {
   assert.ok(encodedData);
 
   const data = JSON.parse(encodedData);
+  assert.equal(data.title, "Cohesive Document");
   assert.equal(data.role, "document");
   assert.equal(data.date, "");
   assert.match(data.body, /<h1>Cohesive Document<\/h1>/);
