@@ -40,10 +40,6 @@ The extension always stores the page as `session.html`, which is consumed by the
 
 The Gist is secret, so it is not publicly listed, but anyone with the Gist ID can view it. The complete HTML page still requires internet access for its CDN assets.
 
-## Layout
-
-- `extension/` contains the Pi extension and its tests.
-
 ## Development
 
 ```bash
