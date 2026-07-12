@@ -1,11 +1,5 @@
 const message = JSON.parse(document.querySelector("#message-data").value);
-const page = document
-  .querySelector("#page-template")
-  .content.cloneNode(true);
-page.querySelector("[data-role]").textContent = `pi · ${message.role}`;
-const date = page.querySelector("[data-date]");
-if (message.date) date.textContent = message.date;
-else date.remove();
+const page = document.querySelector("#page-template").content.cloneNode(true);
 page.querySelector("[data-content]").innerHTML = message.body;
 document.querySelector("#app").replaceChildren(page);
 document.title = message.title;
@@ -24,21 +18,40 @@ const headings = [
   ),
 ];
 const baseLevel = headings.length
-  ? Math.min(
-      ...headings.map((heading) => Number(heading.tagName.slice(1))),
-    )
+  ? Math.min(...headings.map((heading) => Number(heading.tagName.slice(1))))
   : 1;
 const groups = [];
 const groupForHeading = [];
 const links = [];
+const usedHeadingIds = new Set();
+const slugHeading = (text) => {
+  const slug = text
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{Letter}\p{Number}\s-]/gu, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return slug || "heading";
+};
+const uniqueHeadingId = (heading) => {
+  const existing = heading.id?.trim();
+  const base = existing && !/^heading-\d+$/.test(existing) ? existing : slugHeading(heading.textContent ?? "");
+  let id = base;
+  let suffix = 2;
+  while (usedHeadingIds.has(id)) id = `${base}-${suffix++}`;
+  usedHeadingIds.add(id);
+  return id;
+};
 
 headings.forEach((heading, index) => {
-  heading.id = heading.id || `heading-${index}`;
+  heading.id = uniqueHeadingId(heading);
   const level = Number(heading.tagName.slice(1));
-  if (level === baseLevel || !groups.length) groups.push({ items: [] });
+  const tocLevel = Math.max(1, level - baseLevel + 1);
+  if (tocLevel === 1 || !groups.length) groups.push({ items: [] });
   const link = document.createElement("a");
   link.href = headingUrl(heading.id);
-  link.dataset.level = String(level);
+  link.dataset.level = String(tocLevel);
   link.textContent = heading.textContent;
   groups.at(-1).items.push({ heading, link });
   groupForHeading[index] = groups.length - 1;
@@ -97,7 +110,7 @@ if (!links.length) {
         "active-parent",
         groupForHeading[index] === activeGroupIndex &&
           index !== activeIndex &&
-          headings[index].tagName === `H${baseLevel}`,
+          links[index].dataset.level === "1",
       );
       if (active) link.setAttribute("aria-current", "location");
       else link.removeAttribute("aria-current");
@@ -107,9 +120,7 @@ if (!links.length) {
 
   expandButton.addEventListener("click", () => {
     allExpanded = !allExpanded;
-    expandButton.textContent = allExpanded
-      ? "Collapse all"
-      : "Expand all";
+    expandButton.textContent = allExpanded ? "Collapse all" : "Expand all";
     updateVisibility();
   });
   topButton.addEventListener("click", () =>

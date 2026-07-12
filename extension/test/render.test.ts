@@ -19,6 +19,9 @@ test("renders markdown through an HTML template", async () => {
   assert.match(html, /toc a\.active/);
   assert.match(html, /updateActiveHeading/);
   assert.match(html, /session\.html&heading=/);
+  assert.match(html, /slugHeading/);
+  assert.match(html, /link\.dataset\.level = String\(tocLevel\)/);
+  assert.doesNotMatch(html, /link\.dataset\.level = String\(level\)/);
   assert.match(html, /pi-share-base-url/);
   assert.match(html, /pi-url-params/);
   assert.match(html, /Expand all/);
