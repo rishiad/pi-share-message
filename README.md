@@ -18,7 +18,7 @@ pi -e .
 ## Commands
 
 - `/view-message` — select messages, choose transcript or rewritten-document output, write a temporary HTML file, and open it in the default browser.
-- `/share-message` — select messages, choose transcript or rewritten-document output, create a secret GitHub Gist, and open it in the Pi session viewer.
+- `/share-message` — select messages, reuse a previously generated rewritten document for the same selection or choose a new output, create a secret GitHub Gist, and open it in the Pi session viewer.
 
 The selector uses Pi's native tree UI. User and assistant messages are shown; press `Space` to toggle multiple messages, then `Enter` to continue. If nothing is toggled, `Enter` selects the highlighted message.
 

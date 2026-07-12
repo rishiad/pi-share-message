@@ -4,8 +4,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { nanoid } from "nanoid";
+import {
+  documentsFor,
+  rememberDocument,
+  type CachedDocument,
+} from "./document-cache.js";
 import { createSecretGist, sessionUrl } from "./gist.js";
-import { renderPage, type SharedSelectedMessage } from "./render.js";
+import { renderPage, type SharedDocument, type SharedSelectedMessage } from "./render.js";
 import { buildSharedDocument } from "./summarize.js";
 import { latestMessageId, messageTree, selectedMessageForId } from "./turns.js";
 
@@ -84,12 +89,47 @@ async function selectMessages(ctx: ExtensionCommandContext): Promise<SharedSelec
   return messages?.length ? messages : undefined;
 }
 
+async function buildAndRemember(
+  ctx: ExtensionCommandContext,
+  messages: SharedSelectedMessage[],
+): Promise<SharedDocument | undefined> {
+  const document = await buildSharedDocument(ctx, messages);
+  if (!document) return;
+  rememberDocument(messages, document);
+  return document;
+}
+
 async function pageFor(ctx: ExtensionCommandContext): Promise<string | undefined> {
   const messages = await selectMessages(ctx);
   if (!messages) return;
-  const document = await buildSharedDocument(ctx, messages);
-  if (!document) return;
-  return renderPage(document);
+  const document = await buildAndRemember(ctx, messages);
+  return document ? renderPage(document) : undefined;
+}
+
+function cachedDocumentOptions(documents: CachedDocument[]): string[] {
+  return documents.map(
+    (document, index) => `Previously generated ${index + 1}: ${document.title}`,
+  );
+}
+
+async function sharePageFor(
+  ctx: ExtensionCommandContext,
+): Promise<string | undefined> {
+  const messages = await selectMessages(ctx);
+  if (!messages) return;
+
+  const cached = documentsFor(messages);
+  if (cached.length) {
+    const createNew = "Create new output";
+    const options = [...cachedDocumentOptions(cached), createNew];
+    const choice = await ctx.ui.select("Share output", options);
+    if (choice === undefined) return;
+    const index = options.indexOf(choice);
+    if (index >= 0 && index < cached.length) return renderPage(cached[index].document);
+  }
+
+  const document = await buildAndRemember(ctx, messages);
+  return document ? renderPage(document) : undefined;
 }
 
 async function openBrowser(pi: ExtensionAPI, target: string): Promise<void> {
@@ -118,7 +158,7 @@ export default function (pi: ExtensionAPI) {
     description: "Share selected messages through a secret GitHub Gist",
     handler: async (_args, ctx) => {
       try {
-        const html = await pageFor(ctx);
+        const html = await sharePageFor(ctx);
         if (!html) return;
         const token = process.env.GITHUB_TOKEN || (await pi.exec("gh", ["auth", "token"])).stdout.trim();
         if (!token) throw new Error("Set GITHUB_TOKEN or authenticate with gh");
