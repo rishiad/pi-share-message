@@ -29,9 +29,8 @@ test("renders markdown through an HTML template", async () => {
   assert.doesNotMatch(html, /assistant<script>/);
 });
 
-test("renders selected messages as a visual document", async () => {
+test("renders selected messages as a plain transcript", async () => {
   const html = await renderPage({
-    summary: "## Recap\n\nSelected work.",
     messages: [{ id: "abc123", role: "user", markdown: "Please explain it", timestamp: 1, entries: [] }, { id: "def456", role: "assistant", markdown: "## Answer\n\nDone", timestamp: 2, entries: [] }],
   });
   const encodedData = html.match(/<textarea id="message-data" hidden>([\s\S]*?)<\/textarea>/)?.[1];
@@ -39,11 +38,27 @@ test("renders selected messages as a visual document", async () => {
 
   const data = JSON.parse(encodedData);
   assert.equal(data.role, "2 selected messages");
-  assert.match(data.body, /summary-card/);
-  assert.match(data.body, /id="summary"/);
+  assert.equal(data.date, "");
+  assert.match(data.body, /class="conversation"/);
   assert.match(data.body, /id="message-abc123"/);
   assert.match(data.body, /id="message-def456"/);
-  assert.match(data.body, /turn-card-user/);
-  assert.match(data.body, /turn-card-assistant/);
+  assert.match(data.body, /message-role">User/);
+  assert.match(data.body, /message-role">Assistant/);
   assert.match(data.body, /<h2>Answer<\/h2>/);
+  assert.doesNotMatch(data.body, /summary-card/);
+  assert.doesNotMatch(data.body, /turn-card/);
+  assert.doesNotMatch(data.body, /1970/);
+});
+
+test("renders rewritten output as one cohesive document", async () => {
+  const html = await renderPage({ document: "# Cohesive Document\n\nSelected work as prose." });
+  const encodedData = html.match(/<textarea id="message-data" hidden>([\s\S]*?)<\/textarea>/)?.[1];
+  assert.ok(encodedData);
+
+  const data = JSON.parse(encodedData);
+  assert.equal(data.role, "document");
+  assert.equal(data.date, "");
+  assert.match(data.body, /<h1>Cohesive Document<\/h1>/);
+  assert.doesNotMatch(data.body, /class="conversation"/);
+  assert.doesNotMatch(data.body, /message-role/);
 });

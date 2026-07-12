@@ -1,8 +1,19 @@
 import { generateSummary, sessionEntryToContextMessages, type ExtensionCommandContext, type SessionEntry } from "@earendil-works/pi-coding-agent";
-import type { SharedSelectedMessage } from "./render.js";
+import type { SharedDocument, SharedSelectedMessage } from "./render.js";
 
-const choices = ["No summary", "Summarize", "Summarize with custom prompt"] as const;
-type SummaryChoice = typeof choices[number];
+const choices = ["Transcript", "Rewrite as document", "Rewrite as document with custom instructions"] as const;
+type OutputChoice = typeof choices[number];
+
+const rewriteInstructions = `Rewrite the selected conversation into one cohesive standalone document.
+
+Rules:
+- Do not mention that this is a summary.
+- Do not preserve chat turn structure.
+- Organize the content as a readable document with headings.
+- Preserve important code, file paths, commands, decisions, constraints, and conclusions.
+- If the user asked questions and the assistant answered them, merge them into explanatory prose.
+- Remove conversational filler.
+- Keep technical details accurate.`;
 
 function uniqueEntries(messages: SharedSelectedMessage[]): SessionEntry[] {
   const seen = new Set<string>();
@@ -13,26 +24,32 @@ function uniqueEntries(messages: SharedSelectedMessage[]): SessionEntry[] {
   });
 }
 
-export async function selectSummary(ctx: ExtensionCommandContext, messages: SharedSelectedMessage[]): Promise<string | undefined | null> {
-  const choice = await ctx.ui.select("Summarize selection?", [...choices]);
-  if (choice === undefined) return null;
-  if ((choice as SummaryChoice) === "No summary") return undefined;
-
-  const customInstructions = (choice as SummaryChoice) === "Summarize with custom prompt"
-    ? await ctx.ui.editor("Custom summarization instructions")
-    : undefined;
-  if ((choice as SummaryChoice) === "Summarize with custom prompt" && customInstructions === undefined) return null;
-
+async function rewriteSelection(ctx: ExtensionCommandContext, messages: SharedSelectedMessage[], customInstructions: string | undefined): Promise<string> {
   const model = ctx.model;
-  if (!model) throw new Error("No model available for summarization");
+  if (!model) throw new Error("No model available for rewriting");
   const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
   if (!auth.ok) throw new Error(auth.error);
-  const contextMessages = uniqueEntries(messages).flatMap(sessionEntryToContextMessages);
 
-  ctx.ui.setStatus("pi-share-message", "Summarizing selection...");
+  const contextMessages = uniqueEntries(messages).flatMap(sessionEntryToContextMessages);
+  const instructions = [rewriteInstructions, customInstructions?.trim()].filter(Boolean).join("\n\nAdditional instructions:\n");
+
+  ctx.ui.setStatus("pi-share-message", "Rewriting selection...");
   try {
-    return await generateSummary(contextMessages, model, 16384, auth.apiKey, auth.headers, undefined, customInstructions?.trim() || undefined, undefined, undefined, undefined, auth.env);
+    return await generateSummary(contextMessages, model, 16384, auth.apiKey, auth.headers, undefined, instructions, undefined, undefined, undefined, auth.env);
   } finally {
     ctx.ui.setStatus("pi-share-message", undefined);
   }
+}
+
+export async function buildSharedDocument(ctx: ExtensionCommandContext, messages: SharedSelectedMessage[]): Promise<SharedDocument | null> {
+  const choice = await ctx.ui.select("Output format", [...choices]);
+  if (choice === undefined) return null;
+  if ((choice as OutputChoice) === "Transcript") return { title: "Pi selected messages", messages };
+
+  const customInstructions = (choice as OutputChoice) === "Rewrite as document with custom instructions"
+    ? await ctx.ui.editor("Custom rewrite instructions")
+    : undefined;
+  if ((choice as OutputChoice) === "Rewrite as document with custom instructions" && customInstructions === undefined) return null;
+
+  return { title: "Pi selected messages", document: await rewriteSelection(ctx, messages, customInstructions) };
 }

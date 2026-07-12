@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 import { nanoid } from "nanoid";
 import { createSecretGist, sessionUrl } from "./gist.js";
 import { renderPage, type SharedSelectedMessage } from "./render.js";
-import { selectSummary } from "./summarize.js";
+import { buildSharedDocument } from "./summarize.js";
 import { latestMessageId, messageTree, selectedMessageForId } from "./turns.js";
 
 function patchMultiSelect(selector: TreeSelectorComponent, keybindings: Parameters<Parameters<ExtensionCommandContext["ui"]["custom"]>[0]>[2], theme: Parameters<Parameters<ExtensionCommandContext["ui"]["custom"]>[0]>[1], done: (ids: string[] | null) => void): void {
@@ -87,9 +87,9 @@ async function selectMessages(ctx: ExtensionCommandContext): Promise<SharedSelec
 async function pageFor(ctx: ExtensionCommandContext): Promise<string | undefined> {
   const messages = await selectMessages(ctx);
   if (!messages) return;
-  const summary = await selectSummary(ctx, messages);
-  if (summary === null) return;
-  return renderPage({ title: "Pi selected messages", summary, messages });
+  const document = await buildSharedDocument(ctx, messages);
+  if (!document) return;
+  return renderPage(document);
 }
 
 async function openBrowser(pi: ExtensionAPI, target: string): Promise<void> {

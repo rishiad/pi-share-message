@@ -3,7 +3,9 @@ const page = document
   .querySelector("#page-template")
   .content.cloneNode(true);
 page.querySelector("[data-role]").textContent = `pi · ${message.role}`;
-page.querySelector("[data-date]").textContent = message.date;
+const date = page.querySelector("[data-date]");
+if (message.date) date.textContent = message.date;
+else date.remove();
 page.querySelector("[data-content]").innerHTML = message.body;
 document.querySelector("#app").replaceChildren(page);
 document.title = message.title;

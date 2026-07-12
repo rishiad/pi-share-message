@@ -17,8 +17,8 @@ export interface SharedSelectedMessage extends SharedMessage {
 
 export interface SharedDocument {
   title?: string;
-  summary?: string;
-  messages: SharedSelectedMessage[];
+  document?: string;
+  messages?: SharedSelectedMessage[];
 }
 
 interface CodeBlock {
@@ -27,10 +27,21 @@ interface CodeBlock {
   language: string;
 }
 
-const template = readFileSync(new URL("./template/document.html", import.meta.url), "utf8");
-const styles = readFileSync(new URL("./template/styles.css", import.meta.url), "utf8");
-const script = readFileSync(new URL("./template/client.js", import.meta.url), "utf8");
-const pageTemplate = template.replace("{{styles}}", styles).replace("{{script}}", script);
+const template = readFileSync(
+  new URL("./template/document.html", import.meta.url),
+  "utf8",
+);
+const styles = readFileSync(
+  new URL("./template/styles.css", import.meta.url),
+  "utf8",
+);
+const script = readFileSync(
+  new URL("./template/client.js", import.meta.url),
+  "utf8",
+);
+const pageTemplate = template
+  .replace("{{styles}}", styles)
+  .replace("{{script}}", script);
 const shikiTheme = "github-light";
 
 function shikiLanguage(language: string): BundledLanguage | "text" {
@@ -53,7 +64,12 @@ async function renderMarkdown(markdownText: string): Promise<string> {
   const blocks: CodeBlock[] = [];
   let html = markdown(blocks).render(markdownText);
   const highlighted = await Promise.all(
-    blocks.map((block) => codeToHtml(block.code, { lang: shikiLanguage(block.language), theme: shikiTheme })),
+    blocks.map((block) =>
+      codeToHtml(block.code, {
+        lang: shikiLanguage(block.language),
+        theme: shikiTheme,
+      }),
+    ),
   );
   blocks.forEach((block, index) => {
     html = html.replace(block.placeholder, highlighted[index]);
@@ -62,54 +78,73 @@ async function renderMarkdown(markdownText: string): Promise<string> {
 }
 
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]!);
+  return value.replace(
+    /[&<>"]/g,
+    (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]!,
+  );
 }
 
 function escapeJsonForHtml(value: unknown): string {
-  return JSON.stringify(value).replace(/[<>&]/g, (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`);
+  return JSON.stringify(value).replace(
+    /[<>&]/g,
+    (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  );
 }
 
-function isDocument(value: SharedMessage | SharedDocument): value is SharedDocument {
-  return "messages" in value;
+function isDocument(
+  value: SharedMessage | SharedDocument,
+): value is SharedDocument {
+  return "document" in value || "messages" in value;
 }
 
-function dateRange(messages: SharedSelectedMessage[]): string {
-  const timestamps = messages.map((message) => message.timestamp).filter((value): value is number => typeof value === "number");
-  if (!timestamps.length) return "";
-  const first = new Date(Math.min(...timestamps)).toLocaleString();
-  const last = new Date(Math.max(...timestamps)).toLocaleString();
-  return first === last ? first : `${first} – ${last}`;
-}
-
-async function renderSelectedMessage(message: SharedSelectedMessage, index: number): Promise<string> {
+async function renderSelectedMessage(message: SharedSelectedMessage): Promise<string> {
   const body = await renderMarkdown(message.markdown);
-  const date = message.timestamp ? new Date(message.timestamp).toLocaleString() : "";
-  return `<section class="turn">
-<h1 id="message-${escapeHtml(message.id)}">Message ${index + 1}</h1>
-${date ? `<div class="turn-meta">${escapeHtml(date)}</div>` : ""}
-<section class="turn-card turn-card-${escapeHtml(message.role)}"><h2>${escapeHtml(message.role[0].toUpperCase() + message.role.slice(1))}</h2><div>${body}</div></section>
-</section>`;
+  const role = message.role[0].toUpperCase() + message.role.slice(1);
+  return `<article class="message message-${escapeHtml(message.role)}" id="message-${escapeHtml(message.id)}">
+<div class="message-role">${escapeHtml(role)}</div>
+<div class="message-body">${body}</div>
+</article>`;
 }
 
-async function renderDocument(document: SharedDocument): Promise<{ title: string; role: string; date: string; body: string }> {
-  const summary = document.summary ? `<section class="summary-card"><h1 id="summary">Summary</h1>${await renderMarkdown(document.summary)}</section>` : "";
-  const messages = await Promise.all(document.messages.map(renderSelectedMessage));
-  const count = document.messages.length;
+async function renderTranscript(messages: SharedSelectedMessage[]): Promise<string> {
+  const rendered = await Promise.all(messages.map(renderSelectedMessage));
+  return `<section class="conversation">${rendered.join("\n")}</section>`;
+}
+
+async function renderDocument(
+  document: SharedDocument,
+): Promise<{ title: string; role: string; date: string; body: string }> {
+  if (document.document !== undefined) {
+    return {
+      title: document.title ?? "Pi shared document",
+      role: "document",
+      date: "",
+      body: await renderMarkdown(document.document),
+    };
+  }
+
+  const messages = document.messages ?? [];
+  const count = messages.length;
   return {
     title: document.title ?? `${count} selected message${count === 1 ? "" : "s"}`,
     role: `${count} selected message${count === 1 ? "" : "s"}`,
-    date: dateRange(document.messages),
-    body: `${summary}${messages.join("\n")}`,
+    date: "",
+    body: await renderTranscript(messages),
   };
 }
 
-export async function renderPage(message: SharedMessage | SharedDocument): Promise<string> {
-  const data = isDocument(message) ? await renderDocument(message) : {
-    title: `${message.role[0]?.toUpperCase() ?? ""}${message.role.slice(1)} message`,
-    role: message.role,
-    date: message.timestamp ? new Date(message.timestamp).toLocaleString() : "",
-    body: await renderMarkdown(message.markdown),
-  };
+export async function renderPage(
+  message: SharedMessage | SharedDocument,
+): Promise<string> {
+  const data = isDocument(message)
+    ? await renderDocument(message)
+    : {
+        title: `${message.role[0]?.toUpperCase() ?? ""}${message.role.slice(1)} message`,
+        role: message.role,
+        date: "",
+        body: await renderMarkdown(message.markdown),
+      };
 
   return pageTemplate.replace("{{data}}", escapeJsonForHtml(data));
 }
