@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>pi message</title>
+    <script>
+      const tailwindScript = document.createElement("script");
+      tailwindScript.src =
+        "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4";
+      document.head.appendChild(tailwindScript);
+    </script>
+    <style>
+{{styles}}
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <template id="page-template">
+      <main
+        class="mx-auto grid min-h-screen max-w-[980px] grid-cols-1 gap-6 px-4 py-5 lg:grid-cols-[minmax(0,680px)_220px]"
+      >
+        <article>
+          <header class="mb-5 border-b border-[#e5e5e5] pb-2">
+            <div
+              data-role
+              class="text-xs font-semibold uppercase tracking-widest text-[#999]"
+            ></div>
+            <time data-date class="mt-1 block text-sm text-[#999]"></time>
+          </header>
+          <div id="content" data-content class="markdown-body"></div>
+        </article>
+        <aside class="hidden lg:block">
+          <nav id="toc" class="toc sticky top-5"></nav>
+        </aside>
+      </main>
+    </template>
+
+    <textarea id="message-data" hidden>{{data}}</textarea>
+
+    <script>
+{{script}}
+    </script>
+  </body>
+</html>

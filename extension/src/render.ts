@@ -27,7 +27,10 @@ interface CodeBlock {
   language: string;
 }
 
-const template = readFileSync(new URL("./template.html", import.meta.url), "utf8");
+const template = readFileSync(new URL("./template/document.html", import.meta.url), "utf8");
+const styles = readFileSync(new URL("./template/styles.css", import.meta.url), "utf8");
+const script = readFileSync(new URL("./template/client.js", import.meta.url), "utf8");
+const pageTemplate = template.replace("{{styles}}", styles).replace("{{script}}", script);
 const shikiTheme = "github-light";
 
 function shikiLanguage(language: string): BundledLanguage | "text" {
@@ -108,5 +111,5 @@ export async function renderPage(message: SharedMessage | SharedDocument): Promi
     body: await renderMarkdown(message.markdown),
   };
 
-  return template.replace("{{data}}", escapeJsonForHtml(data));
+  return pageTemplate.replace("{{data}}", escapeJsonForHtml(data));
 }
