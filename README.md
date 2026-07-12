@@ -24,6 +24,13 @@ pi install .
 
 The selector uses Pi's native tree UI. User and assistant messages are shown; press `Space` to toggle multiple messages, then `Enter` to continue. If nothing is toggled, `Enter` selects the highlighted message.
 
+## Examples
+
+| Output | Example |
+| --- | --- |
+| Transcript | <https://pi.dev/session/#e3a81a767285a82642d95da566e07d46> |
+| Rewritten document | <https://pi.dev/session/#8e8c778dd7050edcd124b175c2201ee2> |
+
 ## GitHub Gists
 
 Authenticate with `gh auth login`, or set `GITHUB_TOKEN` to a token with the **Gists: write** permission:
