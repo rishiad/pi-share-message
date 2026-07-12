@@ -1,3 +1,20 @@
+const themes = ["light", "sepia", "dark"];
+const themeLabels = { light: "Light", sepia: "Sepia", dark: "Dark" };
+const themeButton = document.querySelector("#theme-cycle");
+const storedTheme = localStorage.getItem("pi-share-theme");
+const setTheme = (theme) => {
+  const selected = themes.includes(theme) ? theme : "light";
+  document.documentElement.dataset.theme = selected;
+  document.documentElement.style.colorScheme = selected === "dark" ? "dark" : "light";
+  themeButton.textContent = themeLabels[selected];
+  localStorage.setItem("pi-share-theme", selected);
+};
+setTheme(storedTheme ?? "light");
+themeButton.addEventListener("click", () => {
+  const current = document.documentElement.dataset.theme || "light";
+  setTheme(themes[(themes.indexOf(current) + 1) % themes.length]);
+});
+
 const message = JSON.parse(document.querySelector("#message-data").value);
 const page = document.querySelector("#page-template").content.cloneNode(true);
 page.querySelector("[data-content]").innerHTML = message.body;
