@@ -7,7 +7,7 @@ import {
   type SessionEntry,
 } from "@earendil-works/pi-coding-agent";
 import type { SharedDocument, SharedSelectedMessage } from "./render.js";
-import { rewriteInstructions, rewriteSystemPrompt } from "./rewrite-prompt.js";
+import { rewriteInstructions, rewriteSystemPrompt } from "./prompt.js";
 
 const choices = [
   "Transcript",

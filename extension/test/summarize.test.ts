@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 const source = readFileSync(new URL("../src/summarize.ts", import.meta.url), "utf8");
-const prompt = readFileSync(new URL("../src/rewrite-prompt.ts", import.meta.url), "utf8");
+const prompt = readFileSync(new URL("../src/prompt.ts", import.meta.url), "utf8");
 
 test("rewrite mode uses article completion instead of Pi compaction summary", () => {
   assert.match(source, /completeSimple/);
