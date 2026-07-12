@@ -144,12 +144,6 @@ a:hover {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.message-user .message-role {
-  color: #337ab7;
-}
-.message-assistant .message-role {
-  color: #22863a;
-}
 .message-body > :first-child {
   margin-top: 0;
 }
