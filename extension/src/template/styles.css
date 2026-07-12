@@ -249,3 +249,15 @@ a:hover {
 .toc-actions button:hover {
   color: #000;
 }
+.made-with {
+  display: block;
+  margin-top: 18px;
+  padding-left: 20px;
+  color: #aaa;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.made-with:hover {
+  color: #767676;
+  text-decoration: none;
+}

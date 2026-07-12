@@ -59,7 +59,7 @@ headings.forEach((heading, index) => {
 });
 
 if (!links.length) {
-  toc.parentElement.remove();
+  toc.remove();
 } else {
   groups.forEach((group) => {
     const element = document.createElement("div");

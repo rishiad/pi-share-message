@@ -12,7 +12,7 @@
       document.head.appendChild(tailwindScript);
     </script>
     <style>
-{{styles}}
+      {{styles}}
     </style>
   </head>
   <body>
@@ -26,7 +26,12 @@
           <div id="content" data-content class="markdown-body"></div>
         </article>
         <aside class="hidden lg:block">
-          <nav id="toc" class="toc sticky top-5"></nav>
+          <div class="sticky top-5">
+            <nav id="toc" class="toc"></nav>
+            <a class="made-with" href="https://github.com/rishiad/pi-share-message">
+              Made with Pi Share Message
+            </a>
+          </div>
         </aside>
       </main>
     </template>
