@@ -1,13 +1,26 @@
 const themes = ["light", "sepia", "dark"];
 const themeLabels = { light: "Light", sepia: "Sepia", dark: "Dark" };
 const themeButton = document.querySelector("#theme-cycle");
-const storedTheme = localStorage.getItem("pi-share-theme");
+const storedTheme = (() => {
+  try {
+    return localStorage.getItem("pi-share-theme");
+  } catch {
+    return null;
+  }
+})();
+const rememberTheme = (theme) => {
+  try {
+    localStorage.setItem("pi-share-theme", theme);
+  } catch {
+    // Storage can be unavailable in sandboxed preview environments.
+  }
+};
 const setTheme = (theme) => {
   const selected = themes.includes(theme) ? theme : "light";
   document.documentElement.dataset.theme = selected;
   document.documentElement.style.colorScheme = selected === "dark" ? "dark" : "light";
   themeButton.textContent = themeLabels[selected];
-  localStorage.setItem("pi-share-theme", selected);
+  rememberTheme(selected);
 };
 setTheme(storedTheme ?? "light");
 themeButton.addEventListener("click", () => {
